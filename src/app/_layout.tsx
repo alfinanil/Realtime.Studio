@@ -1,18 +1,22 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { AppProvider, useApp } from "../context/AppContext";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-SplashScreen.preventAutoHideAsync();
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+function Navigator() {
+  const { c, dark } = useApp();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <>
+      <StatusBar style={dark ? "light" : "dark"} />
+      <Stack screenOptions={{ headerStyle: { backgroundColor: c.bg }, headerTintColor: c.text, headerShadowVisible: false, contentStyle: { backgroundColor: c.bg } }}>
+        <Stack.Screen name="index" options={{ title: "RealTime.Studio" }} />
+        <Stack.Screen name="vendors" options={{ title: "Semua Vendor" }} />
+        <Stack.Screen name="favorites" options={{ title: "Favorit" }} />
+        <Stack.Screen name="vendor/[id]" options={{ title: "Detail Vendor" }} />
+        <Stack.Screen name="booking" options={{ title: "Ajukan Booking", presentation: "modal" }} />
+      </Stack>
+    </>
   );
+}
+export default function RootLayout() {
+  return <AppProvider><Navigator /></AppProvider>;
 }

@@ -1,98 +1,66 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState } from "react";
+import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useRouter } from "expo-router";
+import HeroHeader from "@/components/HeroHeader";
+import VendorCard from "@/components/VendorCard";
+import { CATEGORIES } from "@/data";
+import { useApp } from "@/context/AppContext";
+import { fetchQuote, fetchVendors } from "@/services/vendorService";
+import { shared } from "@/styles/shared";
+import { Vendor } from "@/types";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function Home() {
+  const { c, dark, toggleDark, favs } = useApp();
+  const s = shared(c);
+  const router = useRouter();
+  const [list, setList] = useState<Vendor[]>([]);
+  const [quote, setQuote] = useState<string>("");
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+  useEffect(() => {
+    fetchVendors().then(setList);
+    fetchQuote()
+      .then((q) => setQuote(`“${q.quote}” — ${q.author}`))
+      .catch(() => setQuote("“Setiap momen layak diabadikan.” — RealTime.Studio"));
+  }, []);
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Stack.Screen options={{
+        headerRight: () => (
+          <View style={{ flexDirection: "row", gap: 16 }}>
+            <Pressable onPress={() => router.push("/favorites")}>
+              <Ionicons name="heart" size={22} color={c.primary} />
+              {favs.length > 0 && <Text style={{ position: "absolute", top: -6, right: -8, color: c.primary, fontSize: 11, fontWeight: "800" }}>{favs.length}</Text>}
+            </Pressable>
+            <Pressable onPress={toggleDark}><Ionicons name={dark ? "sunny" : "moon"} size={22} color={c.text} /></Pressable>
+          </View>
+        ),
+      }} />
+      <HeroHeader title={"Satu tempat untuk\nsemua momen terbaikmu"} subtitle="Temukan fotografer, videografer, dekor, MC & katering terpercaya untuk wedding, wisuda, dan event." onSearch={() => router.push("/vendors")} />
+
+      <View style={s.pad}>
+        <Text style={s.h2}>Kategori</Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          {CATEGORIES.map((cat) => (
+            <Pressable key={cat.key} style={[s.card, { width: "31%", alignItems: "center", paddingVertical: 16 }]}
+              onPress={() => router.push({ pathname: "/vendors", params: { cat: cat.key } })}>
+              <Ionicons name={cat.icon as any} size={26} color={c.primary} />
+              <Text style={{ color: c.text, marginTop: 6, fontWeight: "600" }}>{cat.key}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={[s.body, { fontStyle: "italic", marginVertical: 20, textAlign: "center" }]}>{quote}</Text>
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={s.h2}>Vendor Pilihan</Text>
+          <Pressable onPress={() => router.push("/vendors")}><Text style={{ color: c.primary, fontWeight: "700" }}>Lihat semua</Text></Pressable>
+        </View>
+        <FlatList data={list.slice(0, 4)} keyExtractor={(v) => v.id} scrollEnabled={false}
+          renderItem={({ item }) => <VendorCard vendor={item} />}
+          ListEmptyComponent={<Text style={s.body}>Memuat vendor…</Text>} />
+      </View>
+    </ScrollView>
   );
 }
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
